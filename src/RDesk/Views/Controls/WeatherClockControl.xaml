@@ -24,8 +24,13 @@
                     <TextBlock x:Name="LocationText" Text="載入天氣中..." FontSize="14" FontWeight="Bold"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220"
                                Foreground="{StaticResource PrimaryTextBrush}" />
-                    <Button x:Name="RefreshButton" Content="刷新" Style="{StaticResource PillButtonStyle}"
-                            Padding="10,2" MinHeight="24" FontSize="11" Click="RefreshButton_Click" />
+                    <Button x:Name="RefreshButton" Style="{StaticResource PillButtonStyle}"
+                            Padding="8,2" MinHeight="24" FontSize="11" Click="RefreshButton_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <FontIcon Glyph="&#xE72C;" FontSize="11" />
+                            <TextBlock Text="刷新" VerticalAlignment="Center" FontSize="11" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,2,0,0">

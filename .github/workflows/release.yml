@@ -72,7 +72,7 @@ jobs:
             Write-Host "No previous Velopack release yet (ok for the first publish)."
           }
 
-          vpk pack --packId RDesk --packVersion $v --packDir $packDir --mainExe RDesk.exe --packTitle RDesk --icon $icon --outputDir $releases
+          vpk pack --packId RDesk --packVersion $v --packDir $packDir --mainExe RDesk.exe --packTitle RDesk --icon $icon --runtime win-x64 --outputDir $releases
           if ($LASTEXITCODE -ne 0) { throw "vpk pack failed" }
 
           vpk upload github --repoUrl $repo --token $env:GITHUB_TOKEN --outputDir $releases --publish --releaseName "RDesk $v" --tag "v$v"

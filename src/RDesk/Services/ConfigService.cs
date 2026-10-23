@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RDesk.Helpers;
 using RDesk.Models;
 
 namespace RDesk.Services;
@@ -13,10 +14,7 @@ public sealed class ConfigService
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    public static string ConfigFilePath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "RDesk",
-        "config.json");
+    public static string ConfigFilePath => AppPaths.ConfigFilePath;
 
     private readonly string _configPath;
     private readonly object _gate = new();
@@ -25,7 +23,7 @@ public sealed class ConfigService
 
     public ConfigService()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigFilePath)!);
+        AppPaths.EnsureDataDirectory();
         _configPath = ConfigFilePath;
         Load();
     }

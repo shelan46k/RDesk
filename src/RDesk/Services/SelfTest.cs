@@ -10,7 +10,7 @@ namespace RDesk.Services;
 
 /// <summary>
 /// End-to-end smoke test of every module, run with <c>RDesk.exe --selftest</c>.
-/// Writes %LocalAppData%\RDesk\selftest.log, restores the user's config / startup entry, then exits
+/// Writes %AppData%\RDesk\selftest.log, restores the user's config / startup entry, then exits
 /// with the number of failures as the process exit code.
 /// </summary>
 public static class SelfTest

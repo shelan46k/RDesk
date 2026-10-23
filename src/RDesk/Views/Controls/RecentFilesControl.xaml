@@ -9,8 +9,13 @@
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                 <FontIcon Glyph="&#xE81C;" Style="{StaticResource CardIconStyle}" />
                 <TextBlock Grid.Column="1" Text="最近打開的文件" Style="{StaticResource CardTitleStyle}" />
-                <Button Grid.Column="2" x:Name="RefreshButton" Content="刷新"
-                        Style="{StaticResource PillButtonStyle}" Click="RefreshButton_Click" />
+                <Button Grid.Column="2" x:Name="RefreshButton"
+                        Style="{StaticResource PillButtonStyle}" Padding="10,4" Click="RefreshButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE72C;" FontSize="12" />
+                        <TextBlock Text="刷新" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </Grid>
 
             <ScrollViewer Grid.Row="1" MaxHeight="236" VerticalScrollBarVisibility="Auto" Margin="-6,0,-6,0">

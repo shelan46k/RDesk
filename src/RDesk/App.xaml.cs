@@ -25,7 +25,7 @@ public partial class App : Application
             Debug.WriteLine(e.Exception);
             e.Handled = true;
             NativeMessageBox.Show(
-                $"RDesk 發生錯誤：\n{e.Exception.Message}\n\n詳見 %LocalAppData%\\RDesk\\startup.log",
+                $"RDesk 發生錯誤：\n{e.Exception.Message}\n\n詳見 %AppData%\\RDesk\\startup.log",
                 "RDesk");
         };
     }
@@ -80,7 +80,7 @@ public partial class App : Application
         {
             StartupLog.Write("OnLaunched failed", ex);
             NativeMessageBox.Show(
-                $"RDesk 啟動失敗：\n{ex.Message}\n\n詳見 %LocalAppData%\\RDesk\\startup.log",
+                $"RDesk 啟動失敗：\n{ex.Message}\n\n詳見 %AppData%\\RDesk\\startup.log",
                 "RDesk");
             Exit();
         }

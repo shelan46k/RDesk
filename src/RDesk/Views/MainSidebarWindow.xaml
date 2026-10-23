@@ -30,11 +30,8 @@
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Border Width="22" Height="22" CornerRadius="7"
-                                Background="{StaticResource LogoGradientBrush}">
-                            <TextBlock Text="R" FontSize="12" FontWeight="Bold" Foreground="White"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
+                        <Image Width="22" Height="22" Stretch="Uniform"
+                               Source="ms-appx:///Assets/rdesk.png" />
                         <TextBlock Text="桌面管理助手" FontSize="13" FontWeight="Bold"
                                    VerticalAlignment="Center"
                                    Foreground="{StaticResource PrimaryTextBrush}" />
@@ -51,9 +48,19 @@
                         <FontIcon x:Name="ThemeGlyph" Glyph="&#xE708;" FontSize="13" />
                     </Button>
                     <Button x:Name="SettingsButton" Click="SettingsButton_Click" Style="{StaticResource PillButtonStyle}"
-                            Content="設置" ToolTipService.ToolTip="偏好設定" />
+                            Padding="10,4" ToolTipService.ToolTip="偏好設定">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE713;" FontSize="13" />
+                            <TextBlock Text="設置" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="HideButton" Click="HideButton_Click" Style="{StaticResource PillButtonStyle}"
-                            Content="隱藏" />
+                            Padding="10,4">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE89F;" FontSize="13" />
+                            <TextBlock Text="隱藏" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
 

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using RDesk.Helpers;
 
 namespace RDesk.Services;
 
@@ -20,8 +21,7 @@ public sealed class BackupService
         _config = config;
     }
 
-    public static string SnapshotFolder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RDesk", "Backups");
+    public static string SnapshotFolder => AppPaths.SnapshotFolder;
 
     public void Export(string zipPath)
     {

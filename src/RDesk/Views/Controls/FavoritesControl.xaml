@@ -19,8 +19,13 @@
                         ToolTipService.ToolTip="把目前格子放到桌面上">
                     <FontIcon Glyph="&#xE8A7;" FontSize="12" />
                 </Button>
-                <Button Grid.Column="4" x:Name="AddButton" Content="添加"
-                        Style="{StaticResource PillButtonStyle}" Click="AddButton_Click" />
+                <Button Grid.Column="4" x:Name="AddButton"
+                        Style="{StaticResource PillButtonStyle}" Padding="10,4" Click="AddButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE710;" FontSize="12" />
+                        <TextBlock Text="添加" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </Grid>
 
             <ComboBox Grid.Row="1" x:Name="GroupCombo" HorizontalAlignment="Stretch" CornerRadius="10"

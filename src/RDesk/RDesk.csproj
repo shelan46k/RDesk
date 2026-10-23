@@ -37,7 +37,11 @@
 
   <ItemGroup>
     <None Remove="Assets\rdesk.ico" />
+    <None Remove="Assets\rdesk.png" />
     <Content Include="Assets\rdesk.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\rdesk.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

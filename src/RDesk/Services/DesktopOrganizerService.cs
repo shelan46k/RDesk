@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using RDesk.Helpers;
 using RDesk.Models;
 
 namespace RDesk.Services;
@@ -57,8 +58,7 @@ public sealed class DesktopOrganizerService : IDisposable
     private Timer? _autoTimer;
     private string? _watchedFolder;
 
-    public static string HistoryPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RDesk", "organize-history.json");
+    public static string HistoryPath => AppPaths.OrganizeHistoryPath;
 
     public static string DesktopFolder => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 

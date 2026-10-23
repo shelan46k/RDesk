@@ -23,7 +23,12 @@
                                    MaxWidth="280" Foreground="{StaticResource PrimaryTextBrush}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <Button Content="完成" Style="{StaticResource PillButtonStyle}" Padding="10,2" MinHeight="24" Click="ReminderDone_Click" />
+                        <Button Style="{StaticResource PillButtonStyle}" Padding="8,2" MinHeight="24" Click="ReminderDone_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <FontIcon Glyph="&#xE73E;" FontSize="11" />
+                                <TextBlock Text="完成" VerticalAlignment="Center" FontSize="11" />
+                            </StackPanel>
+                        </Button>
                         <Button Content="10 分" Tag="10" Style="{StaticResource PillButtonStyle}" Padding="8,2" MinHeight="24" Click="ReminderSnooze_Click" />
                         <Button Content="1 小時" Tag="60" Style="{StaticResource PillButtonStyle}" Padding="8,2" MinHeight="24" Click="ReminderSnooze_Click" />
                         <Button Content="明天 9 點" Tag="tomorrow" Style="{StaticResource PillButtonStyle}" Padding="8,2" MinHeight="24" Click="ReminderSnooze_Click" />
@@ -63,7 +68,12 @@
                              KeyDown="NoteInput_KeyDown" />
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock x:Name="NoteStatsText" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="儲存" Style="{StaticResource PillButtonStyle}" Click="NoteSave_Click" />
+                        <Button Grid.Column="1" Style="{StaticResource PillButtonStyle}" Padding="10,4" Click="NoteSave_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE74E;" FontSize="12" />
+                                <TextBlock Text="儲存" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </Grid>
                     <ScrollViewer MaxHeight="250" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="NoteHost" Spacing="6" />

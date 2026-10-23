@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using RDesk.Helpers;
 using Velopack;
 using WinRT;
 
@@ -13,6 +14,7 @@ public static class Program
     {
         try
         {
+            AppPaths.EnsureDataDirectory();
             // Must run before WinUI starts: applies a downloaded update from the previous session.
             VelopackApp.Build().Run();
             ComWrappersSupport.InitializeComWrappers();
@@ -28,7 +30,7 @@ public static class Program
         {
             StartupLog.Write("Fatal Main", ex);
             NativeMessageBox.Show(
-                $"RDesk 啟動失敗：\n{ex.Message}\n\n詳細紀錄：%LocalAppData%\\RDesk\\startup.log",
+                $"RDesk 啟動失敗：\n{ex.Message}\n\n詳細紀錄：%AppData%\\RDesk\\startup.log",
                 "RDesk");
         }
     }
@@ -40,11 +42,8 @@ internal static class StartupLog
     {
         get
         {
-            var dir = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "RDesk");
-            Directory.CreateDirectory(dir);
-            return System.IO.Path.Combine(dir, "startup.log");
+            AppPaths.EnsureDataDirectory();
+            return AppPaths.StartupLogPath;
         }
     }
 
