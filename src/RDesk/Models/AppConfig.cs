@@ -43,6 +43,18 @@ public class AppConfig
     public bool ShowFavoritesCard { get; set; } = true;
     public bool ShowTodoCard { get; set; } = true;
     public bool ShowMusicCard { get; set; } = true;
+    /// <summary>Folder whose audio files become the default queue. Empty until the user picks one.</summary>
+    public string MusicFolder { get; set; } = string.Empty;
+    /// <summary>0 = mute, 1 = full.</summary>
+    public double MusicVolume { get; set; } = 1.0;
+    /// <summary>__folder__ uses MusicFolder; otherwise a custom playlist id.</summary>
+    public string MusicPlaylistId { get; set; } = "__folder__";
+    public int MusicIndex { get; set; }
+    /// <summary>None / All / One.</summary>
+    public string MusicRepeatMode { get; set; } = "All";
+    /// <summary>Saved play order for the folder queue. Empty = alphabetical. New files append at the end.</summary>
+    public List<string> MusicFolderOrder { get; set; } = new();
+    public List<MusicPlaylistModel> MusicPlaylists { get; set; } = new();
     public bool ShowSystemCard { get; set; } = true;
     public bool ShowNetworkCard { get; set; } = true;
     public bool ShowNotesTab { get; set; } = true;
@@ -162,6 +174,13 @@ public class ClipItemModel
     public string Text { get; set; } = string.Empty;
     public List<string> Paths { get; set; } = new();
     public DateTime CapturedAt { get; set; } = DateTime.Now;
+}
+
+public class MusicPlaylistModel
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Name { get; set; } = "播放清單";
+    public List<string> Paths { get; set; } = new();
 }
 
 public class OrganizeRuleModel

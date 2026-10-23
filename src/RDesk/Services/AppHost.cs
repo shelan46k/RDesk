@@ -24,12 +24,14 @@ public sealed class AppHost
     public ClipboardHistoryService Clipboard { get; }
     public ReminderService Reminders { get; }
     public UpdateService Updates { get; }
+    public MusicPlayerService Music { get; }
     public TrayService? Tray { get; set; }
 
     public MainSidebarWindow? Sidebar { get; private set; }
     public SettingsWindow? Settings { get; private set; }
     public SearchWindow? SearchPopup { get; private set; }
     public OrganizeWindow? OrganizeView { get; private set; }
+    public PlaylistWindow? PlaylistView { get; private set; }
 
     private readonly List<DetachedBoxWindow> _detached = new();
     public IReadOnlyList<DetachedBoxWindow> DetachedBoxes => _detached;
@@ -54,6 +56,7 @@ public sealed class AppHost
         Clipboard = new ClipboardHistoryService(Config);
         Reminders = new ReminderService(this);
         Updates = new UpdateService(Config);
+        Music = new MusicPlayerService(Config);
         _current = this;
     }
 
@@ -270,6 +273,17 @@ public sealed class AppHost
         SearchPopup.ShowSearch(query);
     }
 
+    public void OpenPlaylist()
+    {
+        if (PlaylistView is null)
+        {
+            PlaylistView = new PlaylistWindow(this);
+            PlaylistView.Closed += (_, _) => PlaylistView = null;
+        }
+
+        PlaylistView.Activate();
+    }
+
     public OrganizeWindow OpenOrganizer(string? folder = null)
     {
         if (OrganizeView is null)
@@ -303,6 +317,7 @@ public sealed class AppHost
         Settings?.ApplyTheme();
         SearchPopup?.ApplyTheme();
         OrganizeView?.ApplyTheme();
+        PlaylistView?.ApplyTheme();
         foreach (var box in _detached)
         {
             box.ApplyTheme();
@@ -318,6 +333,7 @@ public sealed class AppHost
 
         _exiting = true;
         Config.SaveImmediate();
+        Music.Dispose();
         Hotkeys.Dispose();
         Clipboard.Stop();
         Organizer.Dispose();
@@ -330,6 +346,7 @@ public sealed class AppHost
         Settings?.Close();
         SearchPopup?.Close();
         OrganizeView?.Close();
+        PlaylistView?.Close();
         Sidebar?.Close();
         Microsoft.UI.Xaml.Application.Current.Exit();
     }

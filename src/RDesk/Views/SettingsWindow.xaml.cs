@@ -156,7 +156,7 @@ public sealed partial class SettingsWindow : WindowEx
         ("todo", "待辦事項", "待辦、提醒、重複與篩選", "\uE9D5", "#10B981", c => c.ShowTodoCard, (c, v) => c.ShowTodoCard = v, null),
         ("notes", "隨記分頁", "待辦卡片中的「隨記」分頁", "\uE70B", "#8B5CF6", c => c.ShowNotesTab, (c, v) => c.ShowNotesTab = v, "todo"),
         ("clips", "剪貼簿分頁", "待辦卡片中的「剪貼簿」記錄分頁", "\uE77F", "#64748B", c => c.ShowClipboardTab, (c, v) => c.ShowClipboardTab = v, "todo"),
-        ("music", "音樂播放", "目前播放的歌曲與播放控制", "\uE8D6", "#EC4899", c => c.ShowMusicCard, (c, v) => c.ShowMusicCard = v, null),
+        ("music", "音樂播放", "播放指定資料夾或自訂清單，可暫停、切歌與調音量", "\uE8D6", "#EC4899", c => c.ShowMusicCard, (c, v) => c.ShowMusicCard = v, null),
         ("system", "系統狀態", "CPU、記憶體、系統碟與運行時間", "\uE9D9", "#7C5CFF", c => c.ShowSystemCard, (c, v) => c.ShowSystemCard = v, null),
         ("network", "網路狀態", "連線狀態與即時上傳 / 下載速度", "\uE774", "#0EA5E9", c => c.ShowNetworkCard, (c, v) => c.ShowNetworkCard = v, null),
         ("tip", "底部提示文字", "側邊欄最下方的操作提示", "\uE946", "#94A3B8", c => c.ShowSidebarTip, (c, v) => c.ShowSidebarTip = v, null),

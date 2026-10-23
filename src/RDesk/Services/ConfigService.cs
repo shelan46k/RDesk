@@ -94,6 +94,19 @@ public sealed class ConfigService
         config.FavoriteGroups.ForEach(g => g.Items ??= new());
         config.TodoItems.ForEach(t => t.Attachments ??= new());
         config.Notes.ForEach(n => n.Attachments ??= new());
+        config.MusicPlaylists ??= new();
+        config.MusicPlaylists.ForEach(p => p.Paths ??= new());
+        config.MusicFolderOrder ??= new();
+        config.MusicVolume = Math.Clamp(config.MusicVolume, 0.0, 1.0);
+        if (string.IsNullOrWhiteSpace(config.MusicPlaylistId))
+        {
+            config.MusicPlaylistId = "__folder__";
+        }
+
+        if (config.MusicRepeatMode is not ("None" or "All" or "One"))
+        {
+            config.MusicRepeatMode = "All";
+        }
 
         if (!config.TransparencyMigrated)
         {

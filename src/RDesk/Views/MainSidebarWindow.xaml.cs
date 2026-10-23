@@ -82,7 +82,7 @@ public sealed partial class MainSidebarWindow : WindowEx
         RecentCard.Bind(_host.Config);
         FavoritesCard.Bind(_host.Config);
         TodoCard.Bind(_host.Config, _host.Clipboard);
-        _ = MusicCard.StartAsync();
+        MusicCard.Bind(_host.Music);
         ApplyCardVisibility();
     }
 
@@ -93,6 +93,7 @@ public sealed partial class MainSidebarWindow : WindowEx
         RecentCard.Bind(_host.Config);
         FavoritesCard.Bind(_host.Config);
         TodoCard.ShowMode(TodoCard.Mode);
+        MusicCard.Bind(_host.Music);
         ApplyCardVisibility();
         ApplyTheme();
         Reposition();

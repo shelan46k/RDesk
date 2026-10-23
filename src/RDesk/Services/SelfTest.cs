@@ -898,7 +898,7 @@ public static class SelfTest
                 $"indexed={indexed} file={fileHit} todo={todoHit} app={appHit} winIndex={windowsIndex.Count} popup={popupOk} visible={popupVisible}");
         });
 
-        await Check("Music: Windows media session manager", () => Task.FromResult(Expect(
+        await Check("Music: local player is ready", () => Task.FromResult(Expect(
             sidebar.MusicView.IsReady && sidebar.MusicView.LastError is null,
             $"ready={sidebar.MusicView.IsReady} error={sidebar.MusicView.LastError} title={sidebar.MusicView.CurrentTitle}")));
 
