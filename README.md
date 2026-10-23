@@ -39,19 +39,3 @@ Windows 11 桌面管理助手。側邊欄加上可釘在桌面上的文件格子
 | 偏好設定 | 側邊欄右上角「設置」 |
 
 快捷鍵都可以在偏好設定裡改。
-
-## 給想自己編譯的人
-
-需要 .NET 8 SDK。Debug：
-
-```powershell
-dotnet build src\RDesk\RDesk.csproj -c Debug -p:Platform=x64
-```
-
-打包安裝檔：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\publish-release.ps1 -Version 1.0.1
-```
-
-打上 `v1.0.1` 這種 tag 並 push 之後，GitHub Actions 會自動編譯並上傳到 Releases。
