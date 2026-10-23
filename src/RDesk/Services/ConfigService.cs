@@ -148,6 +148,11 @@ public sealed class ConfigService
         SaveImmediate();
     }
 
+    public void CancelPendingSaves()
+    {
+        _debounceCts?.Cancel();
+    }
+
     public void SaveDebounced(int delayMs = 400)
     {
         _debounceCts?.Cancel();

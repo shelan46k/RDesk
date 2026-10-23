@@ -490,8 +490,10 @@
                                     <TextBlock Text="檢查更新" Style="{StaticResource SettingTitleStyle}" />
                                     <TextBlock x:Name="UpdateStatusText" Style="{StaticResource SettingDescriptionStyle}" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                    <Button Content="立即檢查" Click="CheckUpdate_Click" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <ProgressRing x:Name="CheckUpdateRing" Width="18" Height="18" IsActive="False"
+                                                  Visibility="Collapsed" />
+                                    <Button x:Name="CheckUpdateButton" Content="立即檢查" Click="CheckUpdate_Click" />
                                     <Button x:Name="RestartUpdateButton" Content="立即重啟並更新" Click="RestartUpdate_Click" />
                                 </StackPanel>
                             </Grid>

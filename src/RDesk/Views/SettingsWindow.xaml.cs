@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using RDesk.Helpers;
 using RDesk.Models;
 using RDesk.Services;
 using WinUIEx;
@@ -590,9 +591,35 @@ public sealed partial class SettingsWindow : WindowEx
 
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
     {
-        UpdateGithubBox_LostFocus(sender, e);
-        await _host.Updates.CheckAndDownloadAsync(userRequested: true);
-        RefreshUpdateStatus();
+        CheckUpdateButton.IsEnabled = false;
+        CheckUpdateRing.Visibility = Visibility.Visible;
+        CheckUpdateRing.IsActive = true;
+        UpdateStatusText.Text = "正在檢查 GitHub 上的新版本…";
+        try
+        {
+            UpdateGithubBox_LostFocus(sender, e);
+            await _host.Updates.CheckAndDownloadAsync(userRequested: true);
+            RefreshUpdateStatus();
+            if (RootGrid.XamlRoot is not null)
+            {
+                await Dialogs.InfoAsync(RootGrid.XamlRoot, "檢查更新", _host.Updates.Status);
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = "檢查更新失敗：" + ex.Message;
+            if (RootGrid.XamlRoot is not null)
+            {
+                await Dialogs.InfoAsync(RootGrid.XamlRoot, "檢查更新", UpdateStatusText.Text);
+            }
+        }
+        finally
+        {
+            CheckUpdateRing.IsActive = false;
+            CheckUpdateRing.Visibility = Visibility.Collapsed;
+            CheckUpdateButton.IsEnabled = true;
+            RefreshUpdateStatus();
+        }
     }
 
     private void RestartUpdate_Click(object sender, RoutedEventArgs e)

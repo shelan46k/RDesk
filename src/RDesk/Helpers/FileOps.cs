@@ -130,6 +130,21 @@ public static class FileOps
         return moved.Count == 1 ? moved[0] : null;
     }
 
+    public sealed class TransferProgress
+    {
+        public bool Scanning { get; init; }
+        public long BytesDone { get; init; }
+        public long BytesTotal { get; init; }
+        public int FilesDone { get; init; }
+        public int FilesTotal { get; init; }
+        public string Current { get; init; } = string.Empty;
+
+        public double Ratio =>
+            BytesTotal > 0 ? Math.Clamp((double)BytesDone / BytesTotal, 0, 1)
+            : FilesTotal > 0 ? Math.Clamp((double)FilesDone / FilesTotal, 0, 1)
+            : 0;
+    }
+
     /// <summary>Copies or moves files / folders into <paramref name="destDir"/>, renaming on conflict.</summary>
     public static List<string> Transfer(IEnumerable<string> sources, string destDir, bool move)
     {
@@ -189,6 +204,269 @@ public static class FileOps
         }
 
         return results;
+    }
+
+    /// <summary>Background-friendly copy / move with progress. Does not touch the UI thread.</summary>
+    public static async Task<List<string>> TransferAsync(
+        IEnumerable<string> sources,
+        string destDir,
+        bool move,
+        IProgress<TransferProgress>? progress = null,
+        CancellationToken cancellation = default)
+    {
+        Directory.CreateDirectory(destDir);
+        var list = sources.Where(p => File.Exists(p) || Directory.Exists(p)).ToList();
+        if (list.Count == 0)
+        {
+            return new List<string>();
+        }
+
+        // Scan + copy on the thread pool so a drop / paste never freezes the UI.
+        return await Task.Run(
+            () => TransferAsyncCore(list, destDir, move, progress, cancellation),
+            cancellation).ConfigureAwait(false);
+    }
+
+    private static async Task<List<string>> TransferAsyncCore(
+        List<string> list,
+        string destDir,
+        bool move,
+        IProgress<TransferProgress>? progress,
+        CancellationToken cancellation)
+    {
+        var results = new List<string>();
+        progress?.Report(new TransferProgress { Scanning = true, Current = "正在掃描檔案…" });
+        var jobs = new List<CopyJob>();
+        foreach (var src in list)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            var name = Path.GetFileName(src.TrimEnd('\\'));
+            if (string.IsNullOrEmpty(name))
+            {
+                continue;
+            }
+
+            var destRoot = destDir.TrimEnd('\\');
+            var sameFolder = string.Equals(Path.GetDirectoryName(src.TrimEnd('\\')), destRoot, StringComparison.OrdinalIgnoreCase);
+            if (sameFolder)
+            {
+                continue;
+            }
+
+            var target = UniquePath(Path.Combine(destDir, name));
+            if (Directory.Exists(src))
+            {
+                var files = SafeEnumerateFiles(src);
+                jobs.Add(new CopyJob(src, target, IsDirectory: true, files));
+            }
+            else
+            {
+                jobs.Add(new CopyJob(src, target, IsDirectory: false, new[] { src }));
+            }
+        }
+
+        var filesTotal = jobs.Sum(j => j.Files.Count);
+        var bytesTotal = jobs.Sum(j => j.Files.Sum(SafeLength));
+        var filesDone = 0;
+        long bytesDone = 0;
+        var lastReport = 0L;
+
+        void Report(string current, bool force = false)
+        {
+            var now = Environment.TickCount64;
+            if (!force && now - lastReport < 40)
+            {
+                return;
+            }
+
+            lastReport = now;
+            progress?.Report(new TransferProgress
+            {
+                BytesDone = bytesDone,
+                BytesTotal = bytesTotal,
+                FilesDone = filesDone,
+                FilesTotal = filesTotal,
+                Current = current
+            });
+        }
+
+        foreach (var job in jobs)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            try
+            {
+                if (move && SameVolume(job.Source, job.Target))
+                {
+                    await Task.Run(() =>
+                    {
+                        if (job.IsDirectory)
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(job.Target)!);
+                            Directory.Move(job.Source, job.Target);
+                        }
+                        else
+                        {
+                            File.Move(job.Source, job.Target);
+                        }
+                    }, cancellation).ConfigureAwait(false);
+                    filesDone += job.Files.Count;
+                    bytesDone += job.Files.Sum(SafeLength);
+                    Report(Path.GetFileName(job.Target), force: true);
+                    results.Add(job.Target);
+                    continue;
+                }
+
+                if (job.IsDirectory)
+                {
+                    Directory.CreateDirectory(job.Target);
+                    foreach (var dir in SafeEnumerateDirectories(job.Source))
+                    {
+                        var rel = Path.GetRelativePath(job.Source, dir);
+                        Directory.CreateDirectory(Path.Combine(job.Target, rel));
+                    }
+                }
+
+                foreach (var file in job.Files)
+                {
+                    cancellation.ThrowIfCancellationRequested();
+                    var destFile = job.IsDirectory
+                        ? Path.Combine(job.Target, Path.GetRelativePath(job.Source, file))
+                        : job.Target;
+                    Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                    var size = SafeLength(file);
+                    var before = bytesDone;
+                    await CopyFileAsync(file, destFile, copied =>
+                    {
+                        bytesDone += copied;
+                        Report(Path.GetFileName(file));
+                    }, cancellation).ConfigureAwait(false);
+                    if (bytesDone == before)
+                    {
+                        bytesDone += size;
+                    }
+
+                    filesDone++;
+                    Report(Path.GetFileName(file), force: true);
+                }
+
+                if (move)
+                {
+                    await Task.Run(() =>
+                    {
+                        if (job.IsDirectory)
+                        {
+                            Directory.Delete(job.Source, recursive: true);
+                        }
+                        else
+                        {
+                            File.Delete(job.Source);
+                        }
+                    }, cancellation).ConfigureAwait(false);
+                }
+
+                results.Add(job.Target);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                StartupLog.Write("Transfer failed", ex, job.Source);
+            }
+        }
+
+        progress?.Report(new TransferProgress
+        {
+            BytesDone = bytesDone,
+            BytesTotal = Math.Max(bytesTotal, bytesDone),
+            FilesDone = filesDone,
+            FilesTotal = Math.Max(filesTotal, filesDone),
+            Current = results.Count == 0 ? "沒有檔案被加入" : "完成"
+        });
+        return results;
+    }
+
+    private readonly record struct CopyJob(string Source, string Target, bool IsDirectory, IReadOnlyList<string> Files);
+
+    private static bool SameVolume(string a, string b) =>
+        string.Equals(Path.GetPathRoot(a), Path.GetPathRoot(b), StringComparison.OrdinalIgnoreCase);
+
+    private static List<string> SafeEnumerateFiles(string dir)
+    {
+        try
+        {
+            return Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).ToList();
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("Enumerate files failed", ex, dir);
+            return new List<string>();
+        }
+    }
+
+    private static List<string> SafeEnumerateDirectories(string dir)
+    {
+        try
+        {
+            return Directory.EnumerateDirectories(dir, "*", SearchOption.AllDirectories).ToList();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
+    private static long SafeLength(string path)
+    {
+        try
+        {
+            return new FileInfo(path).Length;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static async Task CopyFileAsync(string src, string dest, Action<long>? onChunk, CancellationToken cancellation)
+    {
+        const int bufferSize = 256 * 1024;
+        var length = SafeLength(src);
+        if (length < bufferSize)
+        {
+            await Task.Run(() => File.Copy(src, dest, overwrite: false), cancellation).ConfigureAwait(false);
+            return;
+        }
+
+        await using var input = new FileStream(src, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, useAsync: true);
+        await using var output = new FileStream(dest, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
+        var buffer = new byte[bufferSize];
+        long reported = 0;
+        int read;
+        while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellation).ConfigureAwait(false)) > 0)
+        {
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellation).ConfigureAwait(false);
+            reported += read;
+            if (reported >= bufferSize)
+            {
+                onChunk?.Invoke(reported);
+                reported = 0;
+            }
+        }
+
+        if (reported > 0)
+        {
+            onChunk?.Invoke(reported);
+        }
+
+        try
+        {
+            File.SetLastWriteTimeUtc(dest, File.GetLastWriteTimeUtc(src));
+        }
+        catch
+        {
+        }
     }
 
     public static string UniquePath(string path)

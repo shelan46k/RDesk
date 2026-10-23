@@ -29,6 +29,8 @@ public sealed partial class FileBoxView : UserControl
     private List<string> _chipCategories = new();
     private string _category = string.Empty;
     private bool _dragging;
+    private bool _copying;
+    private CancellationTokenSource? _copyCts;
 
     /// <summary>Raised after this view changed the group (persist + sync other surfaces).</summary>
     public event EventHandler? GroupChanged;
@@ -52,7 +54,11 @@ public sealed partial class FileBoxView : UserControl
         AddHandler(DragOverEvent, new DragEventHandler(OnExternalDragOver), true);
         AddHandler(DragLeaveEvent, new DragEventHandler(OnExternalDragLeave), true);
         AddHandler(DropEvent, new DragEventHandler(OnExternalDrop), true);
-        Unloaded += (_, _) => StopWatching();
+        Unloaded += (_, _) =>
+        {
+            _copyCts?.Cancel();
+            StopWatching();
+        };
     }
 
     public FavoriteGroupModel? Group => _group;
@@ -345,7 +351,7 @@ public sealed partial class FileBoxView : UserControl
 
     private async void OnExternalDragOver(object sender, DragEventArgs e)
     {
-        if (_dragging || _group is null || !e.DataView.Contains(StandardDataFormats.StorageItems))
+        if (_dragging || _copying || _group is null || !e.DataView.Contains(StandardDataFormats.StorageItems))
         {
             return;
         }
@@ -401,7 +407,7 @@ public sealed partial class FileBoxView : UserControl
     {
         DropOverlay.Visibility = Visibility.Collapsed;
         _dragPaths = null;
-        if (_dragging || _group is null || !e.DataView.Contains(StandardDataFormats.StorageItems))
+        if (_dragging || _copying || _group is null || !e.DataView.Contains(StandardDataFormats.StorageItems))
         {
             DragHoverChanged?.Invoke(this, false);
             return;
@@ -409,11 +415,12 @@ public sealed partial class FileBoxView : UserControl
 
         var shift = IsShift(e);
         var deferral = e.GetDeferral();
+        List<string> paths = new();
+        var move = false;
         try
         {
-            var paths = await DropPathsAsync(e.DataView);
-            var move = ShouldMove(paths, shift);
-            AddPaths(paths, move);
+            paths = await DropPathsAsync(e.DataView);
+            move = ShouldMove(paths, shift);
             e.AcceptedOperation = move ? DataPackageOperation.Move : _group.IsFolderBacked ? DataPackageOperation.Copy : DataPackageOperation.Link;
         }
         catch (Exception ex)
@@ -425,6 +432,11 @@ public sealed partial class FileBoxView : UserControl
             deferral.Complete();
             DragHoverChanged?.Invoke(this, false);
         }
+
+        if (paths.Count > 0)
+        {
+            await AddPathsAsync(paths, move);
+        }
     }
 
     /// <summary>
@@ -433,7 +445,7 @@ public sealed partial class FileBoxView : UserControl
     /// </summary>
     public int AddPaths(IReadOnlyList<string> paths, bool move)
     {
-        if (_group is null || paths.Count == 0)
+        if (_copying || _group is null || paths.Count == 0)
         {
             return 0;
         }
@@ -483,22 +495,116 @@ public sealed partial class FileBoxView : UserControl
             }
         }
 
-        if (added > 0)
+        FinishAdded(added, move);
+        return added;
+    }
+
+    public async Task<int> AddPathsAsync(IReadOnlyList<string> paths, bool move)
+    {
+        if (_copying || _group is null || paths.Count == 0)
         {
-            if (_watcher is null)
+            return 0;
+        }
+
+        if (!_group.IsFolderBacked)
+        {
+            return AddPaths(paths, move);
+        }
+
+        if (string.IsNullOrWhiteSpace(_group.MappedFolderPath))
+        {
+            return 0;
+        }
+
+        _copying = true;
+        _copyCts?.Dispose();
+        _copyCts = new CancellationTokenSource();
+        var token = _copyCts.Token;
+        StopWatching();
+        ShowCopyOverlay(move);
+        try
+        {
+            var progress = new Progress<FileOps.TransferProgress>(UpdateCopyOverlay);
+            var transferred = await FileOps.TransferAsync(paths, _group.MappedFolderPath, move, progress, token);
+            FinishAdded(transferred.Count, move);
+            return transferred.Count;
+        }
+        catch (OperationCanceledException)
+        {
+            CopyDetail.Text = "已取消";
+            Reload();
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("Box add failed", ex);
+            CopyDetail.Text = "失敗：" + ex.Message;
+            await Task.Delay(900);
+            return 0;
+        }
+        finally
+        {
+            HideCopyOverlay();
+            _copyCts?.Dispose();
+            _copyCts = null;
+            _copying = false;
+            if (_group is not null)
             {
                 StartWatching();
             }
+        }
+    }
 
-            Reload();
-            RaiseChanged(reloadSelf: false);
-            if (move)
-            {
-                AppHost.Current.OnStorageChanged();
-            }
+    private void ShowCopyOverlay(bool move)
+    {
+        CopyTitle.Text = move ? "正在移動…" : "正在複製…";
+        CopyProgress.Value = 0;
+        CopyDetail.Text = "準備中";
+        CopyCancelButton.IsEnabled = true;
+        CopyOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void UpdateCopyOverlay(FileOps.TransferProgress progress)
+    {
+        CopyProgress.Value = progress.Ratio;
+        CopyDetail.Text = progress.Scanning
+            ? "正在掃描檔案…"
+            : string.IsNullOrWhiteSpace(progress.Current)
+                ? $"{progress.FilesDone} / {progress.FilesTotal}"
+                : $"{progress.FilesDone} / {progress.FilesTotal} · {progress.Current}";
+    }
+
+    private void HideCopyOverlay()
+    {
+        CopyOverlay.Visibility = Visibility.Collapsed;
+        CopyProgress.Value = 0;
+    }
+
+    private void CopyCancel_Click(object sender, RoutedEventArgs e)
+    {
+        CopyCancelButton.IsEnabled = false;
+        CopyDetail.Text = "正在取消…";
+        _copyCts?.Cancel();
+    }
+
+    private void FinishAdded(int added, bool move)
+    {
+        if (added <= 0)
+        {
+            return;
         }
 
-        return added;
+        if (_watcher is null)
+        {
+            StartWatching();
+        }
+
+        Reload();
+        RaiseChanged(reloadSelf: false);
+        if (move)
+        {
+            AppHost.Current.OnStorageChanged();
+        }
     }
 
     /// <summary>Original location of an item; keeps the first origin when it hops from box to box.</summary>
@@ -881,7 +987,7 @@ public sealed partial class FileBoxView : UserControl
             var (paths, move) = await FileOps.ReadClipboardFilesAsync();
             if (paths.Count > 0)
             {
-                AddPaths(paths, move && _group!.IsFolderBacked);
+                await AddPathsAsync(paths, move && _group!.IsFolderBacked);
             }
         }
         catch (Exception ex)

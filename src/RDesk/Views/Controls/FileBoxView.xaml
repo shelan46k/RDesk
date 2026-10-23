@@ -96,6 +96,24 @@
                 <TextBlock x:Name="DropText" HorizontalAlignment="Center" VerticalAlignment="Center"
                            FontWeight="SemiBold" Foreground="{StaticResource AccentTextBrush}" />
             </Border>
+
+            <Border x:Name="CopyOverlay" Visibility="Collapsed" CornerRadius="12"
+                    Background="{StaticResource CardBackgroundBrush}"
+                    BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="18,14" Spacing="8">
+                    <TextBlock x:Name="CopyTitle" Text="正在複製…" FontSize="13" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Foreground="{StaticResource PrimaryTextBrush}" />
+                    <ProgressBar x:Name="CopyProgress" Minimum="0" Maximum="1" Value="0" Height="8"
+                                 CornerRadius="4" Foreground="{StaticResource AccentFillBrush}" />
+                    <TextBlock x:Name="CopyDetail" FontSize="11" HorizontalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{StaticResource SecondaryTextBrush}" />
+                    <Button x:Name="CopyCancelButton" Content="取消" HorizontalAlignment="Center"
+                            Style="{StaticResource PillButtonStyle}" Padding="14,4"
+                            Click="CopyCancel_Click" />
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

@@ -51,10 +51,14 @@ public static class SelfTest
             {
             }
 
-            await Task.Delay(1200); // let debounced config saves flush before restoring
+            // Drop queued saves, then put the original config back into memory AND on disk.
+            // Otherwise a debounce that fires after the file restore can leak StorageRoot / test boxes.
+            host.Config.CancelPendingSaves();
+            await Task.Delay(500);
             if (configBackup is not null)
             {
                 await File.WriteAllBytesAsync(ConfigService.ConfigFilePath, configBackup);
+                host.Config.Load();
             }
 
             try
@@ -504,6 +508,45 @@ public static class SelfTest
             box.SetViewMode("Icon");
             return Expect(fav.CurrentGroup == storage && added == 1 && copiedInto && sourceKept && liveSync && hasStacks && filtered,
                 $"selected={fav.CurrentGroup == storage} added={added} copied={copiedInto} kept={sourceKept} live={liveSync}({box.ItemCount}) stacks={string.Join('/', box.Categories)} filtered={filtered}");
+        });
+
+        await Check("Storage box: async copy reports progress and keeps the UI dispatcher free", async () =>
+        {
+            if (storage is null)
+            {
+                return "no storage box";
+            }
+
+            var src = Path.Combine(tempDir, "async-folder");
+            Directory.CreateDirectory(src);
+            for (var i = 0; i < 6; i++)
+            {
+                File.WriteAllBytes(Path.Combine(src, $"part{i}.bin"), new byte[512 * 1024]);
+            }
+
+            var reports = new List<FileOps.TransferProgress>();
+            var copied = await FileOps.TransferAsync(
+                new[] { src },
+                Path.Combine(tempDir, "async-dst"),
+                move: false,
+                new Progress<FileOps.TransferProgress>(p => reports.Add(p)));
+            var destOk = copied.Count == 1 &&
+                         Directory.GetFiles(copied[0], "*", SearchOption.AllDirectories).Length == 6 &&
+                         File.Exists(Path.Combine(src, "part0.bin"));
+            var sawBytes = reports.Any(r => r.BytesDone > 0 || r.FilesDone > 0);
+
+            var fav = sidebar.FavoritesView;
+            fav.SelectGroup(storage.Id);
+            await Task.Delay(150);
+            var box = fav.BoxView;
+            var dispatcherRan = 0;
+            var addedTask = box.AddPathsAsync(new[] { src }, move: false);
+            var pump = box.DispatcherQueue.TryEnqueue(() => dispatcherRan++);
+            var added = await addedTask;
+            var destFolder = Path.Combine(storage.MappedFolderPath!, "async-folder");
+            return Expect(
+                destOk && sawBytes && pump && dispatcherRan == 1 && added == 1 && Directory.Exists(destFolder),
+                $"destOk={destOk} reports={reports.Count} sawBytes={sawBytes} pump={pump}/{dispatcherRan} added={added} folder={Directory.Exists(destFolder)}");
         });
 
         await Check("Desktop box: capsule expands while files hover, folds back", async () =>
