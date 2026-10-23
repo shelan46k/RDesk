@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<windowex:WindowEx
+    x:Class="RDesk.Views.MainSidebarWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:windowex="using:WinUIEx"
+    xmlns:controls="using:RDesk.Views.Controls"
+    Title="RDesk"
+    Width="380"
+    Height="800"
+    IsResizable="False"
+    IsMaximizable="False"
+    IsMinimizable="False">
+
+    <windowex:WindowEx.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </windowex:WindowEx.SystemBackdrop>
+
+    <!-- The window itself is clipped by DWM to anti-aliased rounded corners, so the panel has no
+         XAML CornerRadius / border that would leave square backdrop "residue" in the corners. -->
+    <Grid x:Name="RootGrid" Background="{StaticResource PanelBackgroundBrush}">
+        <Grid Padding="14,12,14,14" RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto" Margin="2,0,0,12">
+                <Border
+                    Background="{StaticResource PillBackgroundBrush}"
+                    BorderBrush="{StaticResource CardBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="5,4,14,4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border Width="22" Height="22" CornerRadius="7"
+                                Background="{StaticResource LogoGradientBrush}">
+                            <TextBlock Text="R" FontSize="12" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="桌面管理助手" FontSize="13" FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Button x:Name="SearchButton" Click="SearchButton_Click" Style="{StaticResource PillButtonStyle}"
+                            Padding="8,4">
+                        <FontIcon Glyph="&#xE721;" FontSize="13" />
+                    </Button>
+                    <Button x:Name="ThemeButton" Click="ThemeButton_Click" Style="{StaticResource PillButtonStyle}"
+                            Padding="8,4" ToolTipService.ToolTip="切換深淺色主題">
+                        <FontIcon x:Name="ThemeGlyph" Glyph="&#xE708;" FontSize="13" />
+                    </Button>
+                    <Button x:Name="SettingsButton" Click="SettingsButton_Click" Style="{StaticResource PillButtonStyle}"
+                            Content="設置" ToolTipService.ToolTip="偏好設定" />
+                    <Button x:Name="HideButton" Click="HideButton_Click" Style="{StaticResource PillButtonStyle}"
+                            Content="隱藏" />
+                </StackPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,0,0">
+                <StackPanel x:Name="CardsHost" Spacing="12">
+                    <controls:WeatherClockControl x:Name="WeatherCard" />
+                    <controls:RecentFilesControl x:Name="RecentCard" />
+                    <controls:FavoritesControl x:Name="FavoritesCard" />
+                    <controls:TodoNotesControl x:Name="TodoCard" />
+                    <controls:MusicControl x:Name="MusicCard" />
+                    <controls:SystemNetworkControl x:Name="SystemCard" />
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="6,0,6,4">
+                        <FontIcon Glyph="&#xE946;" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0"
+                                  Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock Grid.Column="1" x:Name="TipText" Style="{StaticResource CaptionTextStyle}" />
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</windowex:WindowEx>

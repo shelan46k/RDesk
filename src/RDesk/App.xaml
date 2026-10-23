@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="RDesk.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Mutated in place at runtime by ThemeService -->
+            <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#8CDCE8F5" />
+            <SolidColorBrush x:Key="BoxBackgroundBrush" Color="#28FFFFFF" />
+            <SolidColorBrush x:Key="CardBackgroundBrush" Color="#80FFFFFF" />
+            <SolidColorBrush x:Key="CardBorderBrush" Color="#B3FFFFFF" />
+            <SolidColorBrush x:Key="PillBackgroundBrush" Color="#E6FFFFFF" />
+            <SolidColorBrush x:Key="ItemHoverBrush" Color="#66FFFFFF" />
+            <SolidColorBrush x:Key="PrimaryTextBrush" Color="#1A202C" />
+            <SolidColorBrush x:Key="SecondaryTextBrush" Color="#4A5568" />
+            <SolidColorBrush x:Key="AccentTextBrush" Color="#2B6CB0" />
+            <SolidColorBrush x:Key="AccentFillBrush" Color="#2B6CB0" />
+            <SolidColorBrush x:Key="SegmentTrackBrush" Color="#141A202C" />
+            <SolidColorBrush x:Key="SegmentSelectedBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="WarningTextBrush" Color="#DD6B20" />
+            <SolidColorBrush x:Key="SuccessTextBrush" Color="#2F855A" />
+            <SolidColorBrush x:Key="DangerTextBrush" Color="#C53030" />
+            <SolidColorBrush x:Key="DialogPrimaryTextBrush" Color="#1A202C" />
+            <SolidColorBrush x:Key="DialogSecondaryTextBrush" Color="#4A5568" />
+
+            <LinearGradientBrush x:Key="LogoGradientBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#4FACFE" Offset="0" />
+                <GradientStop Color="#2B6CB0" Offset="1" />
+            </LinearGradientBrush>
+
+            <x:Double x:Key="CardCornerRadiusValue">16</x:Double>
+            <CornerRadius x:Key="CardCornerRadius">16</CornerRadius>
+
+            <!-- White capsule button (reference: 刷新 / 添加 / 設置 / 隱藏) -->
+            <Style x:Key="PillButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Padding" Value="12,4" />
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Background" Value="{StaticResource PillBackgroundBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+
+            <Style x:Key="PillToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                <Setter Property="Padding" Value="12,4" />
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+
+            <!-- Transparent round icon button -->
+            <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+            </Style>
+
+            <Style x:Key="CardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource CardCornerRadius}" />
+                <Setter Property="Padding" Value="16,14" />
+            </Style>
+
+            <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            </Style>
+
+            <Style x:Key="CardIconStyle" TargetType="FontIcon">
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}" />
+            </Style>
+
+            <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="TextWrapping" Value="WrapWholeWords" />
+                <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+            </Style>
+
+            <!-- DeskBox-style settings row: icon | title + description | control -->
+            <Style x:Key="SettingRowStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="16,12" />
+                <Setter Property="MinHeight" Value="68" />
+            </Style>
+
+            <Style x:Key="SettingTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Foreground" Value="{StaticResource DialogPrimaryTextBrush}" />
+            </Style>
+
+            <Style x:Key="SettingDescriptionStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="TextWrapping" Value="WrapWholeWords" />
+                <Setter Property="Foreground" Value="{StaticResource DialogSecondaryTextBrush}" />
+            </Style>
+
+            <Style x:Key="SettingSectionStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="2,12,0,2" />
+                <Setter Property="Foreground" Value="{StaticResource DialogPrimaryTextBrush}" />
+            </Style>
+
+            <Style x:Key="CompletedTodoTextStyle" TargetType="TextBlock">
+                <Setter Property="TextDecorations" Value="Strikethrough" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

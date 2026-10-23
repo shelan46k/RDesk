@@ -1,0 +1,9 @@
+bin/
+obj/
+publish/
+Releases/
+.vs/
+*.user
+*.suo
+*.csproj.user
+*.binlog

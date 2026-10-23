@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="RDesk.Views.Controls.RecentFilesControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Border Style="{StaticResource CardStyle}">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <FontIcon Glyph="&#xE81C;" Style="{StaticResource CardIconStyle}" />
+                <TextBlock Grid.Column="1" Text="最近打開的文件" Style="{StaticResource CardTitleStyle}" />
+                <Button Grid.Column="2" x:Name="RefreshButton" Content="刷新"
+                        Style="{StaticResource PillButtonStyle}" Click="RefreshButton_Click" />
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" MaxHeight="236" VerticalScrollBarVisibility="Auto" Margin="-6,0,-6,0">
+                <VariableSizedWrapGrid x:Name="FilesHost" Orientation="Horizontal"
+                                       MaximumRowsOrColumns="2" ItemWidth="160" ItemHeight="48" />
+            </ScrollViewer>
+
+            <TextBlock Grid.Row="2" x:Name="HintText" Style="{StaticResource CaptionTextStyle}"
+                       Text="雙擊打開；右鍵可收藏置頂 / 加到常用 / 定位文件" />
+        </Grid>
+    </Border>
+</UserControl>
