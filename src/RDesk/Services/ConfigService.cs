@@ -122,12 +122,27 @@ public sealed class ConfigService
         {
             config.UpdateGithubUrl = AppConfig.DefaultUpdateGithubUrl;
         }
+
+        if (IsUnsafeStorageRoot(config.StorageRoot) && !string.IsNullOrWhiteSpace(config.StorageRoot))
+        {
+            config.StorageRoot = string.Empty;
+        }
     }
 
     /// <summary>Root folder that storage boxes (收納格子) create their folders in.</summary>
-    public string StorageRoot => string.IsNullOrWhiteSpace(Current.StorageRoot)
-        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "RDesk 收納")
-        : Current.StorageRoot;
+    public string StorageRoot
+    {
+        get
+        {
+            var raw = Current.StorageRoot;
+            return IsUnsafeStorageRoot(raw)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "RDesk 收納")
+                : raw!;
+        }
+    }
+
+    private static bool IsUnsafeStorageRoot(string? path) =>
+        string.IsNullOrWhiteSpace(path) || FileOps.IsEphemeralPath(path);
 
     /// <summary>Replaces the whole config (backup restore) and persists it.</summary>
     public void ReplaceFromJson(string json)
@@ -170,6 +185,86 @@ public sealed class ConfigService
             {
             }
         }, token);
+    }
+
+    /// <summary>
+    /// Re-attaches storage folders that still exist on disk when the box entry
+    /// disappeared from config (self-test leak, restore, or a wiped settings file).
+    /// </summary>
+    public int RecoverOrphanedStorageBoxes()
+    {
+        string root;
+        lock (_gate)
+        {
+            root = string.IsNullOrWhiteSpace(_config.StorageRoot)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "RDesk 收納")
+                : _config.StorageRoot;
+        }
+
+        var remapped = 0;
+        lock (_gate)
+        {
+            foreach (var group in _config.FavoriteGroups.Where(g => g.IsStorageBox))
+            {
+                if (!FileOps.IsEphemeralPath(group.MappedFolderPath))
+                {
+                    continue;
+                }
+
+                var safe = string.Concat((group.Title ?? string.Empty).Split(Path.GetInvalidFileNameChars())).Trim();
+                if (safe.Length == 0)
+                {
+                    safe = "收納";
+                }
+
+                group.MappedFolderPath = FileOps.UniquePath(Path.Combine(root, safe));
+                Directory.CreateDirectory(group.MappedFolderPath);
+                remapped++;
+            }
+        }
+
+        if (remapped > 0)
+        {
+            SaveImmediate();
+            StartupLog.Write("Moved storage boxes off temp", detail: $"{remapped}");
+        }
+
+        if (!Directory.Exists(root))
+        {
+            return remapped;
+        }
+
+        var added = 0;
+        foreach (var dir in Directory.GetDirectories(root))
+        {
+            lock (_gate)
+            {
+                if (_config.FavoriteGroups.Any(g =>
+                        !string.IsNullOrWhiteSpace(g.MappedFolderPath) &&
+                        string.Equals(g.MappedFolderPath, dir, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                _config.FavoriteGroups.Add(new FavoriteGroupModel
+                {
+                    Title = Path.GetFileName(dir.TrimEnd('\\')),
+                    IsStorageBox = true,
+                    MappedFolderPath = dir,
+                    SortBy = "Date",
+                    SortDescending = true
+                });
+                added++;
+            }
+        }
+
+        if (added > 0)
+        {
+            SaveImmediate();
+            StartupLog.Write("Recovered storage boxes", detail: $"{added} from {root}");
+        }
+
+        return added + remapped;
     }
 
     public void SaveImmediate()

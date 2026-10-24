@@ -107,6 +107,28 @@ public static class FileOps
         return path.StartsWith(r, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Temp / self-test folders must never hold the user's storage boxes.</summary>
+    public static bool IsEphemeralPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            var full = Path.GetFullPath(path).TrimEnd('\\');
+            var temp = Path.GetFullPath(Path.GetTempPath()).TrimEnd('\\');
+            return string.Equals(full, temp, StringComparison.OrdinalIgnoreCase) ||
+                   full.StartsWith(temp + '\\', StringComparison.OrdinalIgnoreCase) ||
+                   full.Contains("RDeskSelfTest", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
     /// <summary>True when the item sits directly on the user's or the public desktop.</summary>
     public static bool IsOnDesktop(string path)
     {
@@ -351,17 +373,8 @@ public static class FileOps
 
                 if (move)
                 {
-                    await Task.Run(() =>
-                    {
-                        if (job.IsDirectory)
-                        {
-                            Directory.Delete(job.Source, recursive: true);
-                        }
-                        else
-                        {
-                            File.Delete(job.Source);
-                        }
-                    }, cancellation).ConfigureAwait(false);
+                    await Task.Run(() => DeleteToRecycleBin(new[] { job.Source }), cancellation)
+                        .ConfigureAwait(false);
                 }
 
                 results.Add(job.Target);

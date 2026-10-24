@@ -516,6 +516,12 @@ public sealed partial class FileBoxView : UserControl
             return 0;
         }
 
+        if (FileOps.IsEphemeralPath(_group.MappedFolderPath))
+        {
+            StartupLog.Write("Refused drop into ephemeral storage box", detail: _group.MappedFolderPath);
+            return 0;
+        }
+
         _copying = true;
         _copyCts?.Dispose();
         _copyCts = new CancellationTokenSource();

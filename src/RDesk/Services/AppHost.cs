@@ -46,6 +46,7 @@ public sealed class AppHost
     public AppHost()
     {
         Config = new ConfigService();
+        Config.RecoverOrphanedStorageBoxes();
         Theme = new ThemeService(Config);
         Monitors = new MonitorService(Config);
         Startup = new StartupService();
