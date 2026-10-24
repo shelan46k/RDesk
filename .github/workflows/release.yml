@@ -1,9 +1,8 @@
 name: Release
 
+# Local publish-release.ps1 already uploads the GitHub Release.
+# Auto-running again on the same tag fails and emails the owner.
 on:
-  push:
-    tags:
-      - "v*.*.*"
   workflow_dispatch:
     inputs:
       version:
