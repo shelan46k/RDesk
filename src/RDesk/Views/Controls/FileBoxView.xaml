@@ -15,6 +15,8 @@
         <Grid Grid.Row="1">
             <GridView x:Name="ItemsGrid"
                       Margin="-4,0,-4,0"
+                      VerticalAlignment="Stretch"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                       SelectionMode="Extended"
                       IsItemClickEnabled="False"
                       CanDragItems="True"
@@ -50,6 +52,8 @@
             <ListView x:Name="ItemsList"
                       Visibility="Collapsed"
                       Margin="-4,0,-4,0"
+                      VerticalAlignment="Stretch"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                       SelectionMode="Extended"
                       CanDragItems="True"
                       CanReorderItems="True"

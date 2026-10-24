@@ -19,6 +19,7 @@ public sealed partial class FavoritesControl : UserControl
     private bool _reloadingGroups;
 
     public event EventHandler<FavoriteGroupModel>? DetachRequested;
+    public event EventHandler? FoldClicked;
 
     public FavoritesControl()
     {
@@ -26,10 +27,16 @@ public sealed partial class FavoritesControl : UserControl
         Box.GroupChanged += (_, _) => Persist();
     }
 
+    public void SetFolded(bool folded) => CardFold.Apply(CardBody, FoldGlyph, FoldButton, folded, FoldSummary);
+
+    private void FoldButton_Click(object sender, RoutedEventArgs e) => FoldClicked?.Invoke(this, EventArgs.Empty);
+
     public void Bind(ConfigService config)
     {
         _config = config;
-        ReloadGroups(0);
+        var id = config.Current.LastFavoriteGroupId;
+        var index = config.Current.FavoriteGroups.FindIndex(g => g.Id == id);
+        ReloadGroups(index >= 0 ? index : 0);
     }
 
     public FavoriteGroupModel? CurrentGroup => _current;
@@ -122,6 +129,7 @@ public sealed partial class FavoritesControl : UserControl
 
         _current = _config.Current.FavoriteGroups[GroupCombo.SelectedIndex];
         Box.Bind(_current);
+        _config.Update(c => c.LastFavoriteGroupId = _current.Id);
         UpdateHint();
     }
 
@@ -132,21 +140,61 @@ public sealed partial class FavoritesControl : UserControl
             return;
         }
 
-        HintText.Text = _current.IsStorageBox
-            ? $"收納格子 · 桌面項目拖進來會收走，其他位置預設{(_config!.Current.DropMovesFiles ? "移動" : "複製")}；拖回桌面或右鍵「放回桌面」即可取出"
-            : _current.IsFolderMapping
-                ? $"映射 · {_current.MappedFolderPath}（即時同步）"
-                : Box.ItemCount == 0
-                    ? "把桌面上的捷徑、資料夾、檔案直接拖進來整理（按住 Shift 只加入連結）"
-                    : "雙擊開啟 · 拖回桌面或右鍵「放回桌面」取出 · 空白處右鍵可切換檢視";
+        FoldSummary.Text = $"{_current.Title} · {Box.ItemCount} 個項目";
+        var copy = _config!.Current.DropMovesFiles ? "移動" : "複製";
+        string line;
+        string tip;
+        if (_current.IsStorageBox)
+        {
+            line = "收納 · 從桌面拖入會收走";
+            tip = $"桌面上的項目拖進來會被收走；其他位置預設{copy}。拖回桌面或右鍵「放回桌面」即可取出。";
+        }
+        else if (_current.IsFolderMapping)
+        {
+            var folder = _current.MappedFolderPath ?? string.Empty;
+            line = $"映射 · {Path.GetFileName(folder.TrimEnd('\\'))}";
+            tip = $"即時顯示資料夾內容：{folder}";
+        }
+        else
+        {
+            line = "收藏 · 拖入加入捷徑";
+            tip = "把捷徑、資料夾、檔案拖進來整理（按住 Shift 只加入連結）。雙擊開啟，空白處右鍵可切換檢視。";
+        }
+
+        HintText.Text = line;
+        ToolTipService.SetToolTip(HintText, tip);
+        ToolTipService.SetToolTip(GroupCombo, tip);
     }
 
     private void OptionsButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_current is not null)
+        if (_current is null)
         {
-            Box.BuildBackgroundMenu().ShowAt(OptionsButton);
+            return;
         }
+
+        ShowGroupMenu(OptionsButton);
+    }
+
+    private void GroupCombo_RightTapped(object sender, Microsoft.UI.Xaml.Input.RightTappedRoutedEventArgs e)
+    {
+        if (_current is null)
+        {
+            return;
+        }
+
+        ShowGroupMenu(GroupCombo);
+        e.Handled = true;
+    }
+
+    private void ShowGroupMenu(FrameworkElement target)
+    {
+        var menu = Box.BuildBackgroundMenu();
+        menu.Items.Add(new MenuFlyoutSeparator());
+        menu.Items.Add(MenuItem("重新命名這個格子…", "\uE8AC", RenameCurrentAsync));
+        menu.Items.Add(MenuItem("刪除這個格子…", "\uE74D", DeleteCurrentAsync,
+            enabled: _config is { Current.FavoriteGroups.Count: > 1 }));
+        menu.ShowAt(target);
     }
 
     private void AddButton_Click(object sender, RoutedEventArgs e)
@@ -221,54 +269,55 @@ public sealed partial class FavoritesControl : UserControl
             AppHost.Current.OpenOrganizer();
             return Task.CompletedTask;
         }));
-        menu.Items.Add(new MenuFlyoutSeparator());
-        menu.Items.Add(MenuItem("重新命名目前格子…", "\uE8AC", async () =>
-        {
-            if (_current is null)
-            {
-                return;
-            }
-
-            var title = await Dialogs.PromptAsync(XamlRoot, "重新命名格子", _current.Title);
-            if (!string.IsNullOrWhiteSpace(title))
-            {
-                var index = GroupCombo.SelectedIndex;
-                _current.Title = title;
-                Persist();
-                ReloadGroups(index);
-            }
-        }));
-        menu.Items.Add(MenuItem("刪除目前格子…", "\uE74D", async () =>
-        {
-            if (_current is null || config.Current.FavoriteGroups.Count <= 1)
-            {
-                return;
-            }
-
-            var stored = _current.IsFolderBacked
-                ? new List<FavoriteItemModel>()
-                : _current.Items.Where(i => FileOps.IsUnder(i.FullPath, _current.StoreFolder)).ToList();
-            var message = _current.IsFolderBacked
-                ? $"只會刪除「{_current.Title}」這個入口，資料夾 {_current.MappedFolderPath} 與裡面的檔案都會保留。"
-                : stored.Count > 0
-                    ? $"從桌面收進「{_current.Title}」的 {stored.Count} 個項目會放回原位置（桌面），其他捷徑只移除入口。"
-                    : $"只會刪除「{_current.Title}」這個入口，收藏的檔案本身不受影響。";
-            if (!await Dialogs.ConfirmAsync(XamlRoot, "刪除格子", message, "刪除格子"))
-            {
-                return;
-            }
-
-            foreach (var item in stored)
-            {
-                FileOps.PutBack(item.FullPath, item.OriginalPath);
-            }
-
-            AppHost.Current.CloseDetachedBox(_current.Id);
-            config.Current.FavoriteGroups.Remove(_current);
-            Persist();
-            ReloadGroups(0);
-        }, enabled: config.Current.FavoriteGroups.Count > 1));
         menu.ShowAt(AddButton);
+    }
+
+    private async Task RenameCurrentAsync()
+    {
+        if (_current is null)
+        {
+            return;
+        }
+
+        var title = await Dialogs.PromptAsync(XamlRoot, "重新命名格子", _current.Title);
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            var index = GroupCombo.SelectedIndex;
+            _current.Title = title;
+            Persist();
+            ReloadGroups(index);
+        }
+    }
+
+    private async Task DeleteCurrentAsync()
+    {
+        if (_current is null || _config is null || _config.Current.FavoriteGroups.Count <= 1)
+        {
+            return;
+        }
+
+        var stored = _current.IsFolderBacked
+            ? new List<FavoriteItemModel>()
+            : _current.Items.Where(i => FileOps.IsUnder(i.FullPath, _current.StoreFolder)).ToList();
+        var message = _current.IsFolderBacked
+            ? $"只會刪除「{_current.Title}」這個入口，資料夾 {_current.MappedFolderPath} 與裡面的檔案都會保留。"
+            : stored.Count > 0
+                ? $"從桌面收進「{_current.Title}」的 {stored.Count} 個項目會放回原位置（桌面），其他捷徑只移除入口。"
+                : $"只會刪除「{_current.Title}」這個入口，收藏的檔案本身不受影響。";
+        if (!await Dialogs.ConfirmAsync(XamlRoot, "刪除格子", message, "刪除格子"))
+        {
+            return;
+        }
+
+        foreach (var item in stored)
+        {
+            FileOps.PutBack(item.FullPath, item.OriginalPath);
+        }
+
+        AppHost.Current.CloseDetachedBox(_current.Id);
+        _config.Current.FavoriteGroups.Remove(_current);
+        Persist();
+        ReloadGroups(0);
     }
 
     public static FavoriteGroupModel CreateStorageBox(ConfigService config, string title)

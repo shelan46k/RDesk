@@ -5,58 +5,73 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Border Style="{StaticResource CardStyle}" Padding="16,14,16,16">
-        <Grid>
-            <!-- Soft decorative cloud, like the reference card -->
-            <TextBlock x:Name="DecorGlyph" Text="☁️" FontSize="64" Opacity="0.28"
-                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0"
-                       IsHitTestVisible="False" />
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                <FontIcon Glyph="&#xE706;" Style="{StaticResource CardIconStyle}" />
+                <TextBlock Grid.Column="1" Text="時鐘天氣" Style="{StaticResource CardTitleStyle}" />
+                <Button Grid.Column="2" x:Name="FoldButton" Style="{StaticResource PillButtonStyle}" Padding="8,4"
+                        Click="FoldButton_Click" ToolTipService.ToolTip="縮起這格">
+                    <FontIcon x:Name="FoldGlyph" Glyph="&#xE70E;" FontSize="12" />
+                </Button>
+            </Grid>
 
-            <StackPanel Spacing="6">
-                <TextBlock x:Name="ClockText" Text="00:00:00" FontSize="40" FontWeight="Bold"
-                           HorizontalAlignment="Center" CharacterSpacing="20"
-                           Foreground="{StaticResource PrimaryTextBrush}" />
-                <TextBlock x:Name="DateText" FontSize="13" HorizontalAlignment="Center" Margin="0,-4,0,2"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
+            <TextBlock x:Name="FoldSummary" Grid.Row="1" Visibility="Collapsed"
+                       FontSize="12" TextTrimming="CharacterEllipsis"
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Text="--:-- · --°C" />
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-                    <FontIcon Glyph="&#xE707;" FontSize="13" VerticalAlignment="Center"
-                              Foreground="{StaticResource AccentTextBrush}" />
-                    <TextBlock x:Name="LocationText" Text="載入天氣中..." FontSize="14" FontWeight="Bold"
-                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220"
+            <Grid x:Name="CardBody" Grid.Row="2">
+                <TextBlock x:Name="DecorGlyph" Text="☁️" FontSize="64" Opacity="0.28"
+                           HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0"
+                           IsHitTestVisible="False" />
+
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="ClockText" Text="00:00:00" FontSize="40" FontWeight="Bold"
+                               HorizontalAlignment="Center" CharacterSpacing="20"
                                Foreground="{StaticResource PrimaryTextBrush}" />
-                    <Button x:Name="RefreshButton" Style="{StaticResource PillButtonStyle}"
-                            Padding="8,2" MinHeight="24" FontSize="11" Click="RefreshButton_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <FontIcon Glyph="&#xE72C;" FontSize="11" />
-                            <TextBlock Text="刷新" VerticalAlignment="Center" FontSize="11" />
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
+                    <TextBlock x:Name="DateText" FontSize="13" HorizontalAlignment="Center" Margin="0,-4,0,2"
+                               Foreground="{StaticResource SecondaryTextBrush}" />
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,2,0,0">
-                    <TextBlock x:Name="WeatherEmoji" Text="⛅" FontSize="30" VerticalAlignment="Center" />
-                    <TextBlock x:Name="TempText" Text="--°C" FontSize="30" FontWeight="Bold"
-                               VerticalAlignment="Center"
-                               Foreground="{StaticResource PrimaryTextBrush}" />
-                </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                        <FontIcon Glyph="&#xE707;" FontSize="13" VerticalAlignment="Center"
+                                  Foreground="{StaticResource AccentTextBrush}" />
+                        <TextBlock x:Name="LocationText" Text="載入天氣中..." FontSize="14" FontWeight="Bold"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220"
+                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                        <Button x:Name="RefreshButton" Style="{StaticResource PillButtonStyle}"
+                                Padding="8,2" MinHeight="24" FontSize="11" Click="RefreshButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <FontIcon Glyph="&#xE72C;" FontSize="11" />
+                                <TextBlock Text="刷新" VerticalAlignment="Center" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
-                    <Border Background="{StaticResource PillBackgroundBrush}" CornerRadius="8" Padding="10,3">
-                        <TextBlock x:Name="FeelText" Text="體感 --" FontSize="11"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                    </Border>
-                    <Border Background="{StaticResource PillBackgroundBrush}" CornerRadius="8" Padding="10,3">
-                        <TextBlock x:Name="HumidityText" Text="濕度 --" FontSize="11"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                    </Border>
-                    <Border Background="{StaticResource PillBackgroundBrush}" CornerRadius="8" Padding="10,3">
-                        <TextBlock x:Name="WindText" Text="風速 --" FontSize="11"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                    </Border>
-                </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,2,0,0">
+                        <TextBlock x:Name="WeatherEmoji" Text="⛅" FontSize="30" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TempText" Text="--°C" FontSize="30" FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                    </StackPanel>
 
-                <Grid x:Name="ForecastGrid" ColumnDefinitions="*,*,*" Margin="0,4,0,0" />
-            </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
+                        <Border Background="{StaticResource PillBackgroundBrush}" CornerRadius="8" Padding="10,3">
+                            <TextBlock x:Name="FeelText" Text="體感 --" FontSize="11"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </Border>
+                        <Border Background="{StaticResource PillBackgroundBrush}" CornerRadius="8" Padding="10,3">
+                            <TextBlock x:Name="HumidityText" Text="濕度 --" FontSize="11"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </Border>
+                        <Border Background="{StaticResource PillBackgroundBrush}" CornerRadius="8" Padding="10,3">
+                            <TextBlock x:Name="WindText" Text="風速 --" FontSize="11"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </Border>
+                    </StackPanel>
+
+                    <Grid x:Name="ForecastGrid" ColumnDefinitions="*,*,*" Margin="0,4,0,0" />
+                </StackPanel>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

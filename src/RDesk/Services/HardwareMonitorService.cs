@@ -10,20 +10,28 @@ public sealed class HardwareMonitorService
     private long _prevRecv;
     private long _prevSent;
     private DateTime _prevNetSample = DateTime.MinValue;
+    private readonly Dictionary<string, (long Read, long Written, DateTime At)> _prevDisk = new();
 
     public HardwareSnapshot Sample()
     {
         var cpu = SampleCpu();
         var ram = SampleRam();
-        var disk = SampleSystemDisk();
+        var drives = SampleDrives();
+        var disk = drives.FirstOrDefault(d => d.IsSystem)?.UsedPercent
+                   ?? drives.FirstOrDefault()?.UsedPercent
+                   ?? 0;
         var uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         var (down, up, connected, nicLabel, ip) = SampleNetwork();
+        SampleDiskIo(drives);
 
         return new HardwareSnapshot
         {
             CpuPercent = cpu,
             RamPercent = ram,
             DiskPercent = disk,
+            Drives = drives,
+            DiskReadBytesPerSec = drives.Sum(d => d.ReadBytesPerSec),
+            DiskWriteBytesPerSec = drives.Sum(d => d.WriteBytesPerSec),
             Uptime = uptime,
             DownloadBytesPerSec = down,
             UploadBytesPerSec = up,
@@ -76,23 +84,100 @@ public sealed class HardwareMonitorService
         return status.dwMemoryLoad;
     }
 
-    private static double SampleSystemDisk()
+    private static List<DiskDriveInfo> SampleDrives()
     {
+        var systemRoot = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
+        var list = new List<DiskDriveInfo>();
         try
         {
-            var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
-            var drive = new DriveInfo(root);
-            if (!drive.IsReady || drive.TotalSize <= 0)
+            foreach (var drive in DriveInfo.GetDrives())
             {
-                return 0;
-            }
+                if (drive.DriveType != DriveType.Fixed || !drive.IsReady || drive.TotalSize <= 0)
+                {
+                    continue;
+                }
 
-            var used = drive.TotalSize - drive.TotalFreeSpace;
-            return used * 100.0 / drive.TotalSize;
+                var name = drive.Name.TrimEnd('\\');
+                list.Add(new DiskDriveInfo
+                {
+                    Name = name.Length > 0 ? name : drive.Name,
+                    UsedPercent = (drive.TotalSize - drive.TotalFreeSpace) * 100.0 / drive.TotalSize,
+                    TotalBytes = drive.TotalSize,
+                    FreeBytes = drive.TotalFreeSpace,
+                    IsSystem = string.Equals(drive.Name, systemRoot, StringComparison.OrdinalIgnoreCase)
+                });
+            }
         }
         catch
         {
-            return 0;
+        }
+
+        return list
+            .OrderByDescending(d => d.IsSystem)
+            .ThenBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(4)
+            .ToList();
+    }
+
+    private void SampleDiskIo(List<DiskDriveInfo> drives)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var drive in drives)
+        {
+            if (!TryReadDiskPerf(drive.Name, out var read, out var written))
+            {
+                continue;
+            }
+
+            if (_prevDisk.TryGetValue(drive.Name, out var prev))
+            {
+                var sec = (now - prev.At).TotalSeconds;
+                if (sec > 0.2)
+                {
+                    drive.ReadBytesPerSec = Math.Max(0, (read - prev.Read) / sec);
+                    drive.WriteBytesPerSec = Math.Max(0, (written - prev.Written) / sec);
+                }
+            }
+
+            _prevDisk[drive.Name] = (read, written, now);
+        }
+    }
+
+    private static bool TryReadDiskPerf(string name, out long bytesRead, out long bytesWritten)
+    {
+        bytesRead = 0;
+        bytesWritten = 0;
+        var path = name.EndsWith(':') ? $@"\\.\{name}" : $@"\\.\{name.TrimEnd('\\')}";
+        var handle = CreateFile(path, 0, FileShareRead | FileShareWrite, 0, OpenExisting, FileFlagBackupSemantics, 0);
+        if (handle == InvalidHandle || handle == 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            var size = Math.Max(Marshal.SizeOf<DISK_PERFORMANCE>(), 128);
+            var buffer = Marshal.AllocHGlobal(size);
+            try
+            {
+                if (!DeviceIoControl(handle, IoctlDiskPerformance, 0, 0, buffer, (uint)size, out _, 0))
+                {
+                    return false;
+                }
+
+                var perf = Marshal.PtrToStructure<DISK_PERFORMANCE>(buffer);
+                bytesRead = perf.BytesRead;
+                bytesWritten = perf.BytesWritten;
+                return true;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+        finally
+        {
+            CloseHandle(handle);
         }
     }
 
@@ -156,6 +241,21 @@ public sealed class HardwareMonitorService
         return (down, up, connected, nicName, ip);
     }
 
+    public static string FormatSize(long bytes)
+    {
+        if (bytes >= 1L << 40)
+        {
+            return $"{bytes / (double)(1L << 40):0.0} TB";
+        }
+
+        if (bytes >= 1L << 30)
+        {
+            return $"{bytes / (double)(1L << 30):0.0} GB";
+        }
+
+        return $"{Math.Max(0, bytes) / (double)(1L << 20):0} MB";
+    }
+
     public static string FormatSpeed(double bytesPerSec)
     {
         if (bytesPerSec < 1024)
@@ -204,6 +304,42 @@ public sealed class HardwareMonitorService
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
+
+    private const uint FileShareRead = 1;
+    private const uint FileShareWrite = 2;
+    private const uint OpenExisting = 3;
+    private const uint FileFlagBackupSemantics = 0x02000000;
+    private const uint IoctlDiskPerformance = 0x00070020;
+    private static readonly nint InvalidHandle = new(-1);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DISK_PERFORMANCE
+    {
+        public long BytesRead;
+        public long BytesWritten;
+        public long ReadTime;
+        public long WriteTime;
+        public long IdleTime;
+        public uint ReadCount;
+        public uint WriteCount;
+        public uint QueueDepth;
+        public uint SplitCount;
+        public long QueryTime;
+        public uint StorageDeviceNumber;
+        public long StorageManagerName0;
+        public long StorageManagerName1;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern nint CreateFile(string lpFileName, uint dwDesiredAccess, uint dwShareMode,
+        nint lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, nint hTemplateFile);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool DeviceIoControl(nint hDevice, uint dwIoControlCode, nint lpInBuffer,
+        uint nInBufferSize, nint lpOutBuffer, uint nOutBufferSize, out uint lpBytesReturned, nint lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(nint hObject);
 }
 
 public sealed class HardwareSnapshot
@@ -211,10 +347,24 @@ public sealed class HardwareSnapshot
     public double CpuPercent { get; set; }
     public double RamPercent { get; set; }
     public double DiskPercent { get; set; }
+    public List<DiskDriveInfo> Drives { get; set; } = new();
+    public double DiskReadBytesPerSec { get; set; }
+    public double DiskWriteBytesPerSec { get; set; }
     public TimeSpan Uptime { get; set; }
     public double DownloadBytesPerSec { get; set; }
     public double UploadBytesPerSec { get; set; }
     public bool IsConnected { get; set; }
     public string NicLabel { get; set; } = "-";
     public string IPv4 { get; set; } = "-";
+}
+
+public sealed class DiskDriveInfo
+{
+    public string Name { get; set; } = "C:";
+    public double UsedPercent { get; set; }
+    public long TotalBytes { get; set; }
+    public long FreeBytes { get; set; }
+    public bool IsSystem { get; set; }
+    public double ReadBytesPerSec { get; set; }
+    public double WriteBytesPerSec { get; set; }
 }

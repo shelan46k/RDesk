@@ -724,6 +724,7 @@ public static class SelfTest
                 ["music"] = () => sidebar.MusicView.Visibility == Visibility.Visible,
                 ["system"] = () => sidebar.SystemView.IsSystemPartVisible,
                 ["network"] = () => sidebar.SystemView.IsNetworkPartVisible,
+                ["disk"] = () => sidebar.SystemView.IsDiskPartVisible,
                 ["tip"] = () => sidebar.IsTipVisible
             };
             var failures = new List<string>();

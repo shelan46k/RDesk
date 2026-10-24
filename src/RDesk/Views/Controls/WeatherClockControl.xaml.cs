@@ -12,6 +12,12 @@ public sealed partial class WeatherClockControl : UserControl
     private readonly DispatcherTimer _weatherTimer = new() { Interval = TimeSpan.FromMinutes(30) };
     private ConfigService? _config;
 
+    public event EventHandler? FoldClicked;
+
+    public void SetFolded(bool folded) => CardFold.Apply(CardBody, FoldGlyph, FoldButton, folded, FoldSummary);
+
+    private void FoldButton_Click(object sender, RoutedEventArgs e) => FoldClicked?.Invoke(this, EventArgs.Empty);
+
     public WeatherClockControl()
     {
         InitializeComponent();
@@ -38,10 +44,19 @@ public sealed partial class WeatherClockControl : UserControl
         _weatherTimer.Start();
     }
 
+    private void UpdateFoldSummary()
+    {
+        var time = DateTime.Now.ToString("HH:mm");
+        var temp = LastSnapshot is null ? "--°C" : $"{LastSnapshot.Temperature:0}°C";
+        var loc = LastSnapshot?.LocationName ?? _config?.Current.LocationName ?? string.Empty;
+        FoldSummary.Text = string.IsNullOrWhiteSpace(loc) ? $"{time} · {temp}" : $"{time} · {temp} · {loc}";
+    }
+
     private void UpdateClock()
     {
         var now = DateTime.Now;
         ClockText.Text = now.ToString("HH:mm:ss");
+        UpdateFoldSummary();
         var week = now.DayOfWeek switch
         {
             DayOfWeek.Monday => "星期一",
@@ -117,12 +132,14 @@ public sealed partial class WeatherClockControl : UserControl
             HumidityText.Text = $"濕度 {snap.Humidity}%";
             WindText.Text = $"風速 {snap.WindSpeed:0.0}km/h";
             RenderForecast(snap);
+            UpdateFoldSummary();
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
             LocationText.Text = $"{_config.Current.LocationName} · 離線";
             ToolTipService.SetToolTip(LocationText, $"天氣取得失敗：{ex.Message}");
+            UpdateFoldSummary();
         }
         finally
         {

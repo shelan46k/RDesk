@@ -12,6 +12,11 @@ public sealed partial class RecentFilesControl : UserControl
     private ConfigService? _config;
     private int _loadVersion;
     public event EventHandler<string>? AddToFavoritesRequested;
+    public event EventHandler? FoldClicked;
+
+    public void SetFolded(bool folded) => CardFold.Apply(CardBody, FoldGlyph, FoldButton, folded, FoldSummary);
+
+    private void FoldButton_Click(object sender, RoutedEventArgs e) => FoldClicked?.Invoke(this, EventArgs.Empty);
 
     public int ItemCount => FilesHost.Children.Count;
     public string? LastError { get; private set; }
@@ -53,6 +58,9 @@ public sealed partial class RecentFilesControl : UserControl
                 FilesHost.Children.Add(CreateCard(item));
             }
 
+            FoldSummary.Text = items.Count == 0
+                ? "沒有最近開啟的文件"
+                : $"{items[0].DisplayName} · 共 {items.Count} 個";
             HintText.Text = items.Count == 0
                 ? "目前沒有最近開啟的文件。若一直是空的，請到 Windows 設定 → 個人化 → 開始，開啟「在開始、跳躍清單和檔案總管中顯示最近開啟的項目」。"
                 : "雙擊打開；右鍵可收藏置頂 / 加到常用 / 定位文件";

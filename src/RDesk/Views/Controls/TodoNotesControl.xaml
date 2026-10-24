@@ -5,15 +5,24 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Border Style="{StaticResource CardStyle}">
-        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10" MinHeight="0">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                 <ContentControl x:Name="ModeHost" HorizontalContentAlignment="Left" VerticalAlignment="Center" />
                 <Button Grid.Column="1" x:Name="ActionButton" Style="{StaticResource PillButtonStyle}"
                         Click="ActionButton_Click" />
+                <Button Grid.Column="2" x:Name="FoldButton" Style="{StaticResource PillButtonStyle}" Padding="8,4"
+                        Click="FoldButton_Click" ToolTipService.ToolTip="縮起這格">
+                    <FontIcon x:Name="FoldGlyph" Glyph="&#xE70E;" FontSize="12" />
+                </Button>
             </Grid>
 
+            <TextBlock x:Name="FoldSummary" Grid.Row="1" Visibility="Collapsed"
+                       FontSize="12" TextTrimming="CharacterEllipsis"
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Text="待辦" />
+
             <!-- Reminder banner (DeskBox: complete or snooze straight from the reminder) -->
-            <Border Grid.Row="1" x:Name="ReminderBanner" Visibility="Collapsed" CornerRadius="12" Padding="12,8"
+            <Border Grid.Row="2" x:Name="ReminderBanner" Visibility="Collapsed" CornerRadius="12" Padding="12,8"
                     Background="{StaticResource PillBackgroundBrush}"
                     BorderBrush="{StaticResource WarningTextBrush}" BorderThickness="1">
                 <StackPanel Spacing="6">
@@ -40,7 +49,9 @@
                 </StackPanel>
             </Border>
 
-            <Grid Grid.Row="2">
+            <ScrollViewer x:Name="CardBody" Grid.Row="3" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled" MinHeight="0">
+            <Grid>
                 <!-- 待辦 -->
                 <StackPanel x:Name="TodoPanel" Spacing="6">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
@@ -51,13 +62,16 @@
                             <FontIcon Glyph="&#xE787;" FontSize="12" />
                         </Button>
                     </Grid>
-                    <ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="TodoHost" Spacing="1" />
                     </ScrollViewer>
                     <TextBlock x:Name="EmptyText" Text="今天沒有待辦，好好享受 ☕" FontSize="12"
                                HorizontalAlignment="Center" Margin="0,4"
                                Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBlock x:Name="StatsText" Style="{StaticResource CaptionTextStyle}" />
+                    <TextBlock x:Name="StatsText" FontSize="11" TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               ToolTipService.ToolTip="雙擊編輯，右鍵看更多" />
                 </StackPanel>
 
                 <!-- 隨記 -->
@@ -75,7 +89,7 @@
                             </StackPanel>
                         </Button>
                     </Grid>
-                    <ScrollViewer MaxHeight="250" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="NoteHost" Spacing="6" />
                     </ScrollViewer>
                     <TextBlock x:Name="NoteEmptyText" Text="還沒有隨記" FontSize="12" HorizontalAlignment="Center"
@@ -85,11 +99,12 @@
                 <!-- 剪貼簿 -->
                 <StackPanel x:Name="ClipPanel" Spacing="6" Visibility="Collapsed">
                     <TextBlock x:Name="ClipStatusText" Style="{StaticResource CaptionTextStyle}" />
-                    <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="ClipHost" Spacing="4" />
                     </ScrollViewer>
                 </StackPanel>
             </Grid>
+            </ScrollViewer>
         </Grid>
     </Border>
 </UserControl>

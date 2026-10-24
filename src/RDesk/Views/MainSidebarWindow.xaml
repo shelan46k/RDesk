@@ -64,22 +64,30 @@
                 </StackPanel>
             </Grid>
 
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,0,0">
-                <StackPanel x:Name="CardsHost" Spacing="12">
-                    <controls:WeatherClockControl x:Name="WeatherCard" />
-                    <controls:RecentFilesControl x:Name="RecentCard" />
-                    <controls:FavoritesControl x:Name="FavoritesCard" />
-                    <controls:TodoNotesControl x:Name="TodoCard" />
-                    <controls:MusicControl x:Name="MusicCard" />
-                    <controls:SystemNetworkControl x:Name="SystemCard" />
+            <Grid x:Name="CardsHost" Grid.Row="1" RowSpacing="12" MinHeight="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition x:Name="WeatherRow" Height="Auto" />
+                    <RowDefinition x:Name="RecentRow" Height="*" />
+                    <RowDefinition x:Name="FavoritesRow" Height="1.5*" />
+                    <RowDefinition x:Name="TodoRow" Height="*" />
+                    <RowDefinition x:Name="MusicRow" Height="*" />
+                    <RowDefinition x:Name="SystemRow" Height="Auto" />
+                    <RowDefinition x:Name="TipRow" Height="Auto" />
+                </Grid.RowDefinitions>
 
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="6,0,6,4">
-                        <FontIcon Glyph="&#xE946;" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0"
-                                  Foreground="{StaticResource SecondaryTextBrush}" />
-                        <TextBlock Grid.Column="1" x:Name="TipText" Style="{StaticResource CaptionTextStyle}" />
-                    </Grid>
-                </StackPanel>
-            </ScrollViewer>
+                <controls:WeatherClockControl x:Name="WeatherCard" Grid.Row="0" VerticalAlignment="Stretch" MinHeight="0" />
+                <controls:RecentFilesControl x:Name="RecentCard" Grid.Row="1" VerticalAlignment="Stretch" MinHeight="0" />
+                <controls:FavoritesControl x:Name="FavoritesCard" Grid.Row="2" VerticalAlignment="Stretch" MinHeight="0" />
+                <controls:TodoNotesControl x:Name="TodoCard" Grid.Row="3" VerticalAlignment="Stretch" MinHeight="0" />
+                <controls:MusicControl x:Name="MusicCard" Grid.Row="4" VerticalAlignment="Stretch" MinHeight="0" />
+                <controls:SystemNetworkControl x:Name="SystemCard" Grid.Row="5" VerticalAlignment="Stretch" />
+
+                <Grid x:Name="TipHost" Grid.Row="6" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="6,0,6,4">
+                    <FontIcon Glyph="&#xE946;" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0"
+                              Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Grid.Column="1" x:Name="TipText" Style="{StaticResource CaptionTextStyle}" />
+                </Grid>
+            </Grid>
         </Grid>
     </Grid>
 </windowex:WindowEx>

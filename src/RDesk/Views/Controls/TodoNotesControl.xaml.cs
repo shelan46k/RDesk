@@ -33,6 +33,12 @@ public sealed partial class TodoNotesControl : UserControl
     private bool _pinnedOnly;
     private TodoItemModel? _bannerTodo;
 
+    public event EventHandler? FoldClicked;
+
+    public void SetFolded(bool folded) => CardFold.Apply(CardBody, FoldGlyph, FoldButton, folded, FoldSummary);
+
+    private void FoldButton_Click(object sender, RoutedEventArgs e) => FoldClicked?.Invoke(this, EventArgs.Empty);
+
     public TodoNotesControl()
     {
         InitializeComponent();
@@ -194,8 +200,11 @@ public sealed partial class TodoNotesControl : UserControl
         };
         var done = Todos.Count(t => t.IsCompleted);
         var overdue = Todos.Count(t => !t.IsCompleted && t.DueAt is { } d && d < DateTime.Now);
-        StatsText.Text = $"已完成 {done}/{Todos.Count}" + (overdue > 0 ? $" · {overdue} 項已逾期" : string.Empty) +
-                         " · 雙擊編輯，右鍵更多";
+        StatsText.Visibility = Todos.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        StatsText.Text = overdue > 0
+            ? $"已完成 {done}/{Todos.Count} · {overdue} 項逾期"
+            : $"已完成 {done}/{Todos.Count}";
+        UpdateFoldSummary();
     }
 
     private FrameworkElement CreateTodoRow(TodoItemModel item)
@@ -471,6 +480,11 @@ public sealed partial class TodoNotesControl : UserControl
         {
             Todos.Add(item);
             TodoInput.Text = string.Empty;
+            if (Filter == "Completed")
+            {
+                SetFilter("Active");
+            }
+
             PersistTodos();
         }
     }
@@ -482,6 +496,11 @@ public sealed partial class TodoNotesControl : UserControl
         if (_mode != TodoMode)
         {
             ShowMode(TodoMode);
+        }
+
+        if (Filter == "Completed")
+        {
+            SetFilter("Active");
         }
 
         PersistTodos();
@@ -663,6 +682,7 @@ public sealed partial class TodoNotesControl : UserControl
         NoteEmptyText.Visibility = NoteHost.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         NoteEmptyText.Text = _pinnedOnly ? "還沒有固定的隨記" : "還沒有隨記，記下第一筆吧";
         NoteStatsText.Text = $"{Notes.Count} 筆 · {Notes.Count(n => n.IsPinned)} 筆固定";
+        UpdateFoldSummary();
     }
 
     private FrameworkElement CreateNoteRow(NoteItemModel note)
@@ -911,6 +931,17 @@ public sealed partial class TodoNotesControl : UserControl
         ClipStatusText.Text = ClipHost.Children.Count == 0
             ? "複製文字或檔案後會出現在這裡（只保存在本機，最多 40 筆）。"
             : "點一下即可再次複製 · 只保存在本機";
+        UpdateFoldSummary();
+    }
+
+    private void UpdateFoldSummary()
+    {
+        FoldSummary.Text = _mode switch
+        {
+            NoteMode => $"{Notes.Count} 筆隨記",
+            ClipMode => $"{ClipHost.Children.Count} 筆剪貼",
+            _ => $"{Todos.Count(t => !t.IsCompleted)} 項未完成 · 已完成 {Todos.Count(t => t.IsCompleted)}/{Todos.Count}"
+        };
     }
 
     private FrameworkElement CreateClipRow(ClipItemModel clip)

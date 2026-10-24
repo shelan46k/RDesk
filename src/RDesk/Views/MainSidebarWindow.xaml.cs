@@ -2,6 +2,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using RDesk.Helpers;
+using RDesk.Models;
 using RDesk.Services;
 using RDesk.Views.Controls;
 using WinRT.Interop;
@@ -24,6 +25,12 @@ public sealed partial class MainSidebarWindow : WindowEx
 
         FavoritesCard.DetachRequested += (_, group) => _host.OpenDetachedBox(group);
         RecentCard.AddToFavoritesRequested += (_, path) => FavoritesCard.AddFavoritePath(path);
+        WeatherCard.FoldClicked += (_, _) => ToggleFold(c => c.WeatherCardCollapsed = !c.WeatherCardCollapsed);
+        RecentCard.FoldClicked += (_, _) => ToggleFold(c => c.RecentCardCollapsed = !c.RecentCardCollapsed);
+        FavoritesCard.FoldClicked += (_, _) => ToggleFold(c => c.FavoritesCardCollapsed = !c.FavoritesCardCollapsed);
+        TodoCard.FoldClicked += (_, _) => ToggleFold(c => c.TodoCardCollapsed = !c.TodoCardCollapsed);
+        MusicCard.FoldClicked += (_, _) => ToggleFold(c => c.MusicCardCollapsed = !c.MusicCardCollapsed);
+        SystemCard.FoldClicked += (_, _) => ToggleFold(c => c.SystemCardCollapsed = !c.SystemCardCollapsed);
 
         Activated += OnActivated;
         Closed += (_, _) => _host.Exit();
@@ -35,7 +42,7 @@ public sealed partial class MainSidebarWindow : WindowEx
     public TodoNotesControl TodoView => TodoCard;
     public MusicControl MusicView => MusicCard;
     public SystemNetworkControl SystemView => SystemCard;
-    public bool IsTipVisible => TipText.Parent is UIElement { Visibility: Visibility.Visible };
+    public bool IsTipVisible => TipHost.Visibility == Visibility.Visible;
     public bool ModulesReady => _modulesBound;
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
@@ -103,20 +110,48 @@ public sealed partial class MainSidebarWindow : WindowEx
     public void ApplyCardVisibility()
     {
         var c = _host.Config.Current;
-        Set(WeatherCard, c.ShowWeatherCard);
-        Set(RecentCard, c.ShowRecentCard);
-        Set(FavoritesCard, c.ShowFavoritesCard);
-        Set(TodoCard, c.ShowTodoCard);
-        Set(MusicCard, c.ShowMusicCard);
-        SystemCard.SetParts(c.ShowSystemCard, c.ShowNetworkCard);
+        SystemCard.SetParts(c.ShowSystemCard, c.ShowNetworkCard, c.ShowDiskCard);
         TodoCard.ApplyTabVisibility();
-        if (TipText.Parent is UIElement tip)
+        ApplyCardLayout();
+    }
+
+    private void ToggleFold(Action<AppConfig> flip)
+    {
+        _host.Config.Update(flip);
+        ApplyCardLayout();
+    }
+
+    private void ApplyCardLayout()
+    {
+        var c = _host.Config.Current;
+        WeatherCard.SetFolded(c.WeatherCardCollapsed);
+        RecentCard.SetFolded(c.RecentCardCollapsed);
+        FavoritesCard.SetFolded(c.FavoritesCardCollapsed);
+        TodoCard.SetFolded(c.TodoCardCollapsed);
+        MusicCard.SetFolded(c.MusicCardCollapsed);
+        SystemCard.SetFolded(c.SystemCardCollapsed);
+
+        SetRow(WeatherRow, WeatherCard, c.ShowWeatherCard, c.WeatherCardCollapsed, star: 0);
+        SetRow(RecentRow, RecentCard, c.ShowRecentCard, c.RecentCardCollapsed, star: 1);
+        SetRow(FavoritesRow, FavoritesCard, c.ShowFavoritesCard, c.FavoritesCardCollapsed, star: 1.5);
+        SetRow(TodoRow, TodoCard, c.ShowTodoCard, c.TodoCardCollapsed, star: 1);
+        SetRow(MusicRow, MusicCard, c.ShowMusicCard, c.MusicCardCollapsed, star: 1);
+        SetRow(SystemRow, SystemCard, c.ShowSystemCard || c.ShowNetworkCard || c.ShowDiskCard, c.SystemCardCollapsed, star: 0);
+        SetRow(TipRow, TipHost, c.ShowSidebarTip, collapsed: false, star: 0);
+    }
+
+    private static void SetRow(RowDefinition row, UIElement card, bool shown, bool collapsed, double star)
+    {
+        card.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        if (!shown)
         {
-            Set(tip, c.ShowSidebarTip);
+            row.Height = new GridLength(0);
+            return;
         }
 
-        static void Set(UIElement card, bool visible) =>
-            card.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        row.Height = !collapsed && star > 0
+            ? new GridLength(star, GridUnitType.Star)
+            : GridLength.Auto;
     }
 
     public void UpdateTip()

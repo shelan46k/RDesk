@@ -57,9 +57,17 @@ public class AppConfig
     public List<MusicPlaylistModel> MusicPlaylists { get; set; } = new();
     public bool ShowSystemCard { get; set; } = true;
     public bool ShowNetworkCard { get; set; } = true;
+    public bool ShowDiskCard { get; set; } = true;
     public bool ShowNotesTab { get; set; } = true;
     public bool ShowClipboardTab { get; set; } = true;
     public bool ShowSidebarTip { get; set; } = true;
+
+    public bool WeatherCardCollapsed { get; set; }
+    public bool RecentCardCollapsed { get; set; }
+    public bool FavoritesCardCollapsed { get; set; }
+    public bool TodoCardCollapsed { get; set; }
+    public bool MusicCardCollapsed { get; set; }
+    public bool SystemCardCollapsed { get; set; }
 
     public string LocationName { get; set; } = "台中市 · 南區";
     public double Latitude { get; set; } = 24.1235;
@@ -67,6 +75,8 @@ public class AppConfig
 
     public List<string> PinnedRecentPaths { get; set; } = new();
     public List<FavoriteGroupModel> FavoriteGroups { get; set; } = new();
+    /// <summary>Last file-box group shown in the sidebar.</summary>
+    public string LastFavoriteGroupId { get; set; } = string.Empty;
 
     /// <summary>Root folder for storage boxes (收納格子). Empty = %UserProfile%\RDesk 收納.</summary>
     public string StorageRoot { get; set; } = string.Empty;

@@ -29,6 +29,18 @@ public sealed partial class MusicControl : UserControl
     private ScrollViewer? _outerScroll;
     private ScrollMode _outerScrollMode = ScrollMode.Enabled;
 
+    public event EventHandler? FoldClicked;
+
+    public void SetFolded(bool folded)
+    {
+        CardFold.Apply(CardBody, FoldGlyph, FoldButton, folded, FoldSummary);
+        var extra = folded ? Visibility.Collapsed : Visibility.Visible;
+        FolderButton.Visibility = extra;
+        PlaylistButton.Visibility = extra;
+    }
+
+    private void FoldButton_Click(object sender, RoutedEventArgs e) => FoldClicked?.Invoke(this, EventArgs.Empty);
+
     public MusicControl()
     {
         InitializeComponent();
@@ -166,15 +178,19 @@ public sealed partial class MusicControl : UserControl
         var has = _player.Queue.Count > 0;
         PrevButton.IsEnabled = has;
         PlayButton.IsEnabled = has;
+        MiniPlayButton.IsEnabled = has;
         NextButton.IsEnabled = has;
         ShuffleButton.IsEnabled = has;
-        PlayGlyph.Glyph = _player.IsPlaying ? "\uE769" : "\uE768";
+        var playGlyph = _player.IsPlaying ? "\uE769" : "\uE768";
+        PlayGlyph.Glyph = playGlyph;
+        MiniPlayGlyph.Glyph = playGlyph;
         UpdateRepeatGlyph();
 
         if (!has)
         {
             TitleText.Text = "還沒有音樂";
             ArtistText.Text = "先選一個資料夾，或建立自己的播放清單";
+            MiniTitle.Text = "還沒有音樂";
             UpdateProgress();
             return;
         }
@@ -183,6 +199,7 @@ public sealed partial class MusicControl : UserControl
         ArtistText.Text = IOPath.GetDirectoryName(_player.CurrentPath) is { } dir
             ? IOPath.GetFileName(dir)
             : string.Empty;
+        MiniTitle.Text = TitleText.Text;
         if (TrackList.Items.Count == _player.Queue.Count)
         {
             TrackList.SelectedIndex = _player.Index;
@@ -332,6 +349,8 @@ public sealed partial class MusicControl : UserControl
             {
                 ArtistText.Text = props.Artist;
             }
+
+            MiniTitle.Text = TitleText.Text;
         }
         catch
         {
